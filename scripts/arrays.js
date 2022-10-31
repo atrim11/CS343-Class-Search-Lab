@@ -22,14 +22,14 @@ function timeParity(cb) {
 }
 
 function dataLocationFromParity(p) {
-  return locationOfData.replace('data.', `data-${p}.`);
+  return locationOfData.replace("data.", `data-${p}.`);
 }
 
 //callback version
 function reqListener() {
   console.log("reqListener");
   const structuredData = JSON.parse(this.responseText);
-  console.log("structuredData", structuredData);
+  // console.log("structuredData", structuredData);
   data = structuredData;
   init();
 }
@@ -37,17 +37,6 @@ const req = new XMLHttpRequest();
 req.addEventListener("load", reqListener);
 req.open("GET", locationOfData);
 req.send();
-
-// Use callbacks with XMLHttpRequest to:
-// get data.json (provided as “callback version”)
-//  for each course,
-//    get the detailed info about that course <prefix+number>.json
-//      log the detailed info
-//      get the timeParity
-//        get the data file corresponding to the timeParity (dataLocationFromParity can help)
-//        log the parity-text
-
-
 
 //promises version
 
@@ -92,12 +81,55 @@ const courseToCard = ({
   return courseTemplate;
 };
 
+function handleCourseDetails() {
+  console.log("handleCourseDetails");
+  const structuredData = JSON.parse(this.responseText);
+  // console.log("detailed course info", structuredData);
+
+  let resultOfTP;
+  timeParity(function (val) {
+    console.log("val", val);
+    resultOfTP = val;
+  });
+  //we cannot expect this to be useful because it gets the value asynronously we need to use it after the time parity is done
+  console.log(
+    "dataLocationFromParity(resultOfTP)",
+    dataLocationFromParity(resultOfTP)
+  );
+
+  function gotParityFile(results) {
+    console.log("results from getting parity file", results);
+  }
+
+  const reqParity = new XMLHttpRequest();
+  reqParity.addEventListener("load", gotParityFile);
+  reqParity.open("GET", dataLocationFromParity(resultOfTP));
+  reqParity.send();
+}
+
 function init() {
   filteredCourses = data.items;
   courseCards = data.items.map(courseToCard);
   filteredCourseCards = courseCards;
   resultsContainer.innerHTML = filteredCourseCards.join("");
   updateCount();
+
+  //  for each course,
+  for (let i = 0; i < filteredCourses.length; i++) {
+    //    get the detailed info about that course <prefix+number>.json
+    //      log the detailed info
+    let currentCourse = `${filteredCourses[i].prefix}${filteredCourses[i].number}.json`;
+    console.log("currentCoursei", i);
+    const req = new XMLHttpRequest();
+    req.addEventListener("load", handleCourseDetails);
+    req.open("GET", currentCourse);
+    req.send();
+  }
+
+  //      get the timeParity
+  //        log the timeParity
+  //        get the data file corresponding to the timeParity (dataLocationFromParity can help)
+  //        log the parity-text
 }
 // courseCards.forEach((c) => document.write(c));
 
@@ -108,7 +140,7 @@ function init() {
 //
 
 const filterCourseCard = (courseObj, query) => {
-  console.log(courseObj, query);
+  // console.log(courseObj, query);
   return (
     courseObj.title.toLowerCase().includes(query.toLowerCase()) ||
     courseObj.desc.toLowerCase().includes(query.toLowerCase()) ||
@@ -121,7 +153,7 @@ const filterCourseCard = (courseObj, query) => {
 const searchField = document.querySelector('input[name="query-text"]');
 
 searchField.addEventListener("input", (ev) => {
-  console.log(ev);
+  // console.log(ev);
   ev.preventDefault();
   console.log("query text");
 
@@ -143,4 +175,3 @@ function updateCount() {
   const countValue = filteredCourses.length;
   count.innerText = `${countValue} items`;
 }
-
